@@ -12,12 +12,19 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
+const navLinks = [
+  { href: "/", label: "Find Jobs" },
+  { href: "/dashboard/jobs/create", label: "Create a Job" },
+  { href: "/dashboard/jobs/alerts", label: "Job Alerts" },
+];
+
 export default function JobBoardNav({
   user,
 }: {
   user?: { name: string; avatar: string };
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <nav className="bg-background border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -31,21 +38,15 @@ export default function JobBoardNav({
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link href="/jobs" className="text-foreground hover:text-primary">
-              Find Jobs
-            </Link>
-            <Link
-              href="/dashboard/jobs/create"
-              className="text-foreground hover:text-primary"
-            >
-              Create a Job
-            </Link>
-            <Link
-              href="/dashboard/jobs/alerts"
-              className="text-foreground hover:text-primary"
-            >
-              Job Alerts
-            </Link>
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-foreground hover:text-primary"
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
 
           {/* User Actions */}
@@ -102,24 +103,15 @@ export default function JobBoardNav({
       {mobileMenuOpen && (
         <div className="md:hidden">
           <div className="px-2 pt-2 space-y-1 sm:px-3">
-            <Link
-              href="/jobs"
-              className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:text-primary hover:bg-accent"
-            >
-              Find Jobs
-            </Link>
-            <Link
-              href="/dashboard/jobs/create"
-              className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:text-primary hover:bg-accent"
-            >
-              Create a Job
-            </Link>
-            <Link
-              href="/dashboard/jobs/alerts"
-              className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:text-primary hover:bg-accent"
-            >
-              Job Alerts
-            </Link>
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:text-primary hover:bg-accent"
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
           <div className="mb-2 pb-4">
             {user ? (
