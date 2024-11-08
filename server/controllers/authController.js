@@ -2,18 +2,24 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const catchAsync = require("../utils/catchAsync");
 const { AppError } = require("../utils/errorHandler");
-const sendEmail = require("../utils/email");
+const { sendEmail } = require("../utils/email");
 const crypto = require("crypto");
 const { createSendToken } = require("../utils/sendToken");
-
+const config = require("../config/env");
 
 exports.register = catchAsync(async (req, res, next) => {
+  const existingUser = await User.findOne({ email: req.body.email });
+  if (existingUser) {
+    return next(
+      new AppError("User with this email address already exists", 400)
+    );
+  }
+
   const newUser = await User.create({
-    name: req.body.name,
+    companyName: req.body.companyName,
     email: req.body.email,
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
-    role: req.body.role,
   });
 
   // Create verification token
@@ -21,9 +27,7 @@ exports.register = catchAsync(async (req, res, next) => {
   await newUser.save({ validateBeforeSave: false });
 
   // Send verification email
-  const verificationURL = `${req.protocol}://${req.get(
-    "host"
-  )}/api/v1/auth/verify-email/${verificationToken}`;
+  const verificationURL = `${config.FRONTEND_URL}/auth/verify-email/${verificationToken}`;
   const message = `Welcome to Job Listing App! Please verify your email by clicking on the following link: ${verificationURL}`;
 
   try {
@@ -31,9 +35,41 @@ exports.register = catchAsync(async (req, res, next) => {
       email: newUser.email,
       subject: "Email Verification",
       message,
-      html: `<p>Welcome to Job Listing App!</p>
-             <p>Please verify your email by clicking on the following link:</p>
-             <a href="${verificationURL}">Verify Email</a>`,
+      html: `<div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h2 style="color: #333;">Welcome to Job Board!</h2>
+      </div>
+      
+      <div style="background-color: #f8f8f8; padding: 20px; border-radius: 5px;">
+        <h3 style="color: #444;">Hello ${newUser.companyName},</h3>
+        <p style="color: #666; line-height: 1.6;">
+          Thank you for registering with Job Board. Please verify your email address by clicking the button below:
+        </p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${verificationURL}" 
+             style="background-color: #000000; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            Verify Email Address
+          </a>
+        </div>
+        
+        <p style="color: #666; line-height: 1.6;">
+          If the button doesn't work, you can also click this link:
+          <a href="${verificationURL}" style="color: #4CAF50;">
+            ${verificationURL}
+          </a>
+        </p>
+        
+        <p style="color: #666; line-height: 1.6;">
+          This verification link will expire in 24 hours.
+        </p>
+      </div>
+      
+      <div style="text-align: center; margin-top: 20px; color: #888; font-size: 0.9em;">
+        <p>If you didn't create an account with Job Board, please ignore this email.</p>
+      </div>
+    </div>
+  `,
     });
 
     createSendToken(newUser, 201, res);
@@ -120,7 +156,7 @@ exports.protect = catchAsync(async (req, res, next) => {
   }
 
   // Verify token
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const decoded = jwt.verify(token, config.JWT_SECRET);
 
   // Check if user still exists
   const user = await User.findById(decoded.id);

@@ -12,62 +12,84 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { zodResolver } from "@hookform/resolvers/zod";
+import axios from "axios";
 import { Loader } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const isDisabled = !email || !password;
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-  const formAction = async (formData: FormData) => {
-    setError("");
-    startTransition(async () => {
-      try {
-        console.log(`page.tsx:33 formData ==>>`, formData);
-        const result = {
-          error: "Invalid email or password",
-        };
+  const onSubmit = async (values: LoginFormValues) => {
+    setIsPending(true);
+    setError(null); // Clear previous error
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
+        values
+      );
+      if (response.data.token) {
+        document.cookie = `token=${response.data.token}; path=/; secure; samesite=strict`;
 
-        if (result.error) {
-          setError(result.error);
-          return;
-        }
+        toast({
+          title: "Success",
+          description: "Logged in successfully",
+        });
 
-        // Redirect to dashboard on success
-        router.push("/dashboard");
-      } catch (err) {
-        console.log(`page.tsx:43 err ==>>`, err);
-        setError("An unexpected error occurred");
+        window.location.href = "/dashboard/jobs/create";
       }
-    });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      const errorMessage =
+        err.response?.data?.message || "An unexpected error occurred";
+      setError(errorMessage);
+      toast({
+        title: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (
-    <Card className="w-[300px] sm:w-[360px] rounded-md">
-      <CardHeader className="space-y-2">
+    <Card className="w-[300px] sm:w-[400px] md:w-[450px] py-2 rounded-md">
+      <CardHeader className="space-y-3">
         <CardTitle className="text-2xl">Login</CardTitle>
         <CardDescription>
           Enter your email and password to login
         </CardDescription>
       </CardHeader>
-      <form action={formAction}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
         <CardContent className="grid gap-5">
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
-              name="email"
               placeholder="m@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              {...form.register("email")}
               required
             />
           </div>
@@ -76,25 +98,19 @@ export default function LoginPage() {
             <Input
               id="password"
               type="password"
-              name="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              {...form.register("password")}
               required
             />
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
-          <Button
-            className="w-full"
-            type="submit"
-            disabled={isPending || isDisabled}
-          >
+          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+          <Button className="w-full py-5" type="submit" disabled={isPending}>
             {isPending && <Loader className="mr-2 h-4 w-4 animate-spin" />}
             Login
           </Button>
-          {error && <p className="text-sm text-red-500 text-center">{error}</p>}
           <p className="text-sm text-muted-foreground text-center">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link
               href="/auth/register"
               className="text-primary hover:underline"

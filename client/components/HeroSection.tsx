@@ -7,7 +7,7 @@ export default function HeroSection() {
     <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
       <div className="container mx-auto px-4 py-16 sm:py-20">
         <div className="text-center mb-8">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-4">
             Find Your Dream Job Today
           </h1>
           <p className="sm:text-lg mb-8">

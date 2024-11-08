@@ -1,6 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { getToken } from "@/lib/utils";
+import axios from "axios";
 import { Mail, Plus, Send, Trash2, Users } from "lucide-react";
 import React, { useState } from "react";
 
@@ -16,14 +19,41 @@ export default function JobAlertsPage() {
   const [newName, setNewName] = useState("");
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [sending, setSending] = useState(false);
+  const { toast } = useToast();
 
-  const handleAddCandidate = (e: React.FormEvent) => {
+  const handleAddCandidate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newEmail && newName) {
-      setCandidates([...candidates, { email: newEmail, name: newName }]);
-      setNewEmail("");
-      setNewName("");
+
+    if (!newEmail || !newName) {
+      toast({
+        title: "Please fill in both name and email",
+        variant: "destructive",
+      });
+      return;
     }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      toast({
+        title: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for duplicate email
+    if (candidates.some((candidate) => candidate.email === newEmail)) {
+      toast({
+        title: "This email is already added",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCandidates([...candidates, { email: newEmail, name: newName }]);
+    setNewEmail("");
+    setNewName("");
   };
 
   const handleRemoveCandidate = (email: string) => {
@@ -32,24 +62,53 @@ export default function JobAlertsPage() {
 
   const handleSendAlerts = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (candidates.length === 0) {
-      alert("Please add at least one candidate");
+      toast({
+        title: "Please add at least one candidate",
+        variant: "destructive",
+      });
       return;
     }
+
     if (!subject || !message) {
-      alert("Please fill in all fields");
+      toast({
+        title: "Please fill in all fields",
+        variant: "destructive",
+      });
       return;
     }
 
-    setSending(true);
-    // Simulate sending emails
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setSending(false);
+    try {
+      setSending(true);
+      const token = getToken();
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/alerts`,
+        {
+          subject,
+          message,
+          candidates,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-    alert("Job alerts sent successfully!");
-    setSubject("");
-    setMessage("");
-    setCandidates([]);
+      if (response.status === 200) {
+        toast({ title: "Job alerts sent successfully!" });
+        setSubject("");
+        setMessage("");
+        setCandidates([]);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      toast({
+        title: "Failed to send alerts. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -73,16 +132,18 @@ export default function JobAlertsPage() {
                 type="text"
                 placeholder="Candidate Name"
                 value={newName}
+                required
                 onChange={(e) => setNewName(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg border "
+                className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <div className="flex gap-2">
                 <input
                   type="email"
                   placeholder="Email Address"
+                  required
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
-                  className="flex-1 px-4 py-2 rounded-lg border "
+                  className="flex-1 px-4 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <Button type="submit" className="px-4 py-2 rounded-lg">
                   <Plus className="w-5 h-5" />
@@ -102,10 +163,11 @@ export default function JobAlertsPage() {
                   <p className="text-sm text-gray-500">{candidate.email}</p>
                 </div>
                 <Button
+                  variant="ghost"
                   onClick={() => handleRemoveCandidate(candidate.email)}
-                  className="p-2"
+                  className="p-2 hover:bg-red-100 hover:text-red-600"
                 >
-                  <Trash2 className="w-6 h-6" />
+                  <Trash2 className="w-5 h-5" />
                 </Button>
               </div>
             ))}
@@ -128,7 +190,7 @@ export default function JobAlertsPage() {
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Enter alert subject"
-              className="w-full px-4 py-2 rounded-lg border "
+              className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
@@ -141,14 +203,14 @@ export default function JobAlertsPage() {
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Compose your job alert message..."
               rows={4}
-              className="w-full px-4 py-2 rounded-lg border border-gray-200 "
+              className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
           <Button
             type="submit"
             disabled={sending}
-            className="w-full flex items-center justify-center gap-2 px-6 py-6"
+            className="w-full flex items-center justify-center gap-2 px-6 py-3"
           >
             <Send className="w-5 h-5" />
             {sending ? "Sending..." : "Send Job Alerts"}

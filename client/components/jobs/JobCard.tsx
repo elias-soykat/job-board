@@ -6,12 +6,9 @@ import Link from "next/link";
 
 type Job = {
   title: string;
-  company: string;
-  location: string;
-  salary: string;
-  type: string;
-  tags: string[];
-  id: string | number;
+  companyName: string;
+  jobType: string;
+  _id: string | number;
 };
 
 export default function JobCard({ job }: { job: Job }) {
@@ -20,29 +17,31 @@ export default function JobCard({ job }: { job: Job }) {
       <CardContent className="p-6">
         <div className="flex justify-between items-start mb-2">
           <div>
-            <h2 className="text-xl font-semibold">{job.title}</h2>
-            <p className="text-gray-600">{job.company}</p>
+            <h2 className="sm:text-xl font-semibold">{job.title}</h2>
+            <p className="text-gray-600">{job.companyName}</p>
           </div>
-          <Button>
-            <Link href={`/dashboard/jobs/${job.id}`}>Apply Now</Link>
-          </Button>
+          <div>
+            <Link href={`/jobs/${job._id}`}>
+              <Button>Apply Now</Button>
+            </Link>
+          </div>
         </div>
         <div className="flex items-center space-x-4 text-sm text-gray-500 mb-2">
           <div className="flex items-center">
             <MapPin className="w-4 h-4 mr-1" />
-            {job.location}
+            New York, NY
           </div>
-          <div className="flex items-center">
+          <div className="hidden py-2 sm:flex items-center">
             <DollarSign className="w-4 h-4 mr-1" />
-            {job.salary}
+            $90,000 - $140,000
           </div>
           <div className="flex items-center">
             <Clock className="w-4 h-4 mr-1" />
-            {job.type}
+            {job.jobType}
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {job.tags.map((tag) => (
+          {["React", "TypeScript", "Tailwind CSS"].map((tag) => (
             <Badge key={tag} variant="secondary">
               {tag}
             </Badge>

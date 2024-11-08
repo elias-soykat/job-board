@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import axios from "axios";
 import { Loader } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -22,7 +23,7 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    confirmPassword: "",
+    passwordConfirm: "",
     companyName: "",
   });
   const [error, setError] = useState("");
@@ -31,9 +32,9 @@ export default function RegisterPage() {
   const isDisabled =
     !formData.email ||
     !formData.password ||
-    !formData.confirmPassword ||
+    !formData.passwordConfirm ||
     !formData.companyName ||
-    formData.password !== formData.confirmPassword;
+    formData.password !== formData.passwordConfirm;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -43,44 +44,40 @@ export default function RegisterPage() {
     }));
   };
 
-  const formAction = async (formData: FormData) => {
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setError("");
     startTransition(async () => {
       try {
-        // Validate passwords match
-        if (formData.get("password") !== formData.get("confirmPassword")) {
+        if (formData.password !== formData.passwordConfirm) {
           setError("Passwords do not match");
           return;
         }
 
-        console.log("Registration form data:", Object.fromEntries(formData));
+        const response = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_URL}/auth/register`,
+          formData
+        );
 
-        // TODO: Replace with actual API call
-        const result = {
-          error: "Registration service not implemented yet",
-        };
-
-        if (result.error) {
-          setError(result.error);
-          return;
+        if (response.status === 201) {
+          router.push(`/auth/send-email?email=${formData.email}`);
+        } else {
+          setError("An unexpected error occurred");
         }
-
-        // Redirect to email verification page on success
-        router.push("/auth/verify-email");
       } catch (err) {
-        console.error("Registration error:", err);
-        setError("An unexpected error occurred");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setError((err as any).response?.data?.message || "An error occurred");
       }
     });
   };
 
   return (
-    <Card className="w-[350px] sm:w-[380px] rounded-md">
-      <CardHeader className="space-y-2">
+    <Card className="w-[350px] sm:w-[400px] md:w-[450px] rounded-md">
+      <CardHeader className="space-y-3">
         <CardTitle className="text-2xl">Register</CardTitle>
         <CardDescription>Create an account for your company</CardDescription>
       </CardHeader>
-      <form action={formAction}>
+      <form onSubmit={onSubmit}>
         <CardContent className="grid gap-5">
           <div className="grid gap-2">
             <Label htmlFor="companyName">Company Name</Label>
@@ -118,25 +115,25 @@ export default function RegisterPage() {
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Label htmlFor="passwordConfirm">Confirm Password</Label>
             <Input
-              id="confirmPassword"
+              id="passwordConfirm"
               type="password"
-              name="confirmPassword"
+              name="passwordConfirm"
               placeholder="Confirm your password"
-              value={formData.confirmPassword}
+              value={formData.passwordConfirm}
               onChange={handleInputChange}
               required
             />
-            {formData.password !== formData.confirmPassword &&
-              formData.confirmPassword && (
+            {formData.password !== formData.passwordConfirm &&
+              formData.passwordConfirm && (
                 <p className="text-sm text-red-500">Passwords do not match</p>
               )}
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
           <Button
-            className="w-full"
+            className="w-full py-5"
             type="submit"
             disabled={isPending || isDisabled}
           >

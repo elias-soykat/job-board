@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const jobSchema = new mongoose.Schema(
   {
-    company: {
+    companyName: {
       type: String,
       required: [true, "A job must have a company name"],
     },
@@ -11,12 +11,10 @@ const jobSchema = new mongoose.Schema(
       required: [true, "A job must have a title"],
       trim: true,
     },
-    description: [
-      {
-        type: String,
-        required: [true, "A job must have a description"],
-      },
-    ],
+    description: {
+      type: String,
+      required: [true, "A job must have a description"],
+    },
     jobType: {
       type: String,
       enum: ["full-time", "part-time", "contract", "internship"],

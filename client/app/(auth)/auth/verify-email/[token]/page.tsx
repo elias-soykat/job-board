@@ -4,57 +4,61 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CheckCircle, Loader2, XCircle } from "lucide-react";
+import axios from "axios";
+import { ArrowRight, CheckCircle, Loader2, XCircle } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
-export default function VerifyEmailPage({ email = "user@example.com" }) {
-  const [verificationStatus, setVerificationStatus] = useState<
-    "loading" | "success" | "error"
-  >("loading");
-  const [resendDisabled, setResendDisabled] = useState(false);
-  const [resendCountdown, setResendCountdown] = useState(0);
+type Status = "loading" | "success" | "error";
+type Props = {
+  params: { token: string };
+};
+
+export default function VerifyEmailPage({ params: { token } }: Props) {
+  const [verificationStatus, setVerificationStatus] =
+    useState<Status>("loading");
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    // Simulate email verification process
-    const timer = setTimeout(() => {
-      setVerificationStatus(Math.random() > 0.5 ? "success" : "error");
-    }, 3000);
+    const verifyEmail = async () => {
+      if (!token) {
+        setVerificationStatus("error");
+        setErrorMessage("No verification token found");
+        return;
+      }
 
-    return () => clearTimeout(timer);
-  }, []);
+      try {
+        const { data } = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/auth/verify-email/${token}`
+        );
 
-  const handleResendVerification = () => {
-    setResendDisabled(true);
-    setResendCountdown(60);
-
-    // Simulate resending verification email
-    setTimeout(() => {
-      setResendDisabled(false);
-    }, 60000);
-
-    const countdownInterval = setInterval(() => {
-      setResendCountdown((prevCount) => {
-        if (prevCount <= 1) {
-          clearInterval(countdownInterval);
-          return 0;
+        if (data.status === "success") {
+          setVerificationStatus("success");
+        } else {
+          setVerificationStatus("error");
+          setErrorMessage(data.message || "Verification failed");
         }
-        return prevCount - 1;
-      });
-    }, 1000);
-  };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (error: any) {
+        setVerificationStatus("error");
+        setErrorMessage(
+          error.response?.data?.message ||
+            "An error occurred during verification"
+        );
+      }
+    };
+
+    verifyEmail();
+  }, [token]);
 
   return (
     <Card className="w-full max-w-md rounded-md p-1">
       <CardHeader>
-        <CardTitle className="text-2xl">Verify Your Email</CardTitle>
-        <CardDescription>
-          We&apos;ve sent a verification link to {email}
-        </CardDescription>
+        <CardTitle className="text-xl text-center">Verify Your Email</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center space-y-4">
         {verificationStatus === "loading" && (
@@ -70,20 +74,18 @@ export default function VerifyEmailPage({ email = "user@example.com" }) {
           {verificationStatus === "loading" && "Verifying your email..."}
           {verificationStatus === "success" &&
             "Your email has been successfully verified!"}
-          {verificationStatus === "error" &&
-            "There was an error verifying your email. Please try again."}
+          {verificationStatus === "error" && errorMessage}
         </p>
+        <CardFooter className="flex flex-col items-center gap-2">
+          {verificationStatus === "success" && (
+            <Link href="/auth/login">
+              <Button className="w-full">
+                Redirect to Login <ArrowRight className="ml-2" />
+              </Button>
+            </Link>
+          )}
+        </CardFooter>
       </CardContent>
-      <CardFooter className="flex justify-center">
-        <Button
-          onClick={handleResendVerification}
-          disabled={resendDisabled || verificationStatus === "loading"}
-        >
-          {resendDisabled
-            ? `Resend in ${resendCountdown}s`
-            : "Resend Verification Email"}
-        </Button>
-      </CardFooter>
     </Card>
   );
 }

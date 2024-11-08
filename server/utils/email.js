@@ -1,27 +1,27 @@
 const nodemailer = require("nodemailer");
+const config = require("../config/env");
 
 const sendEmail = async (options) => {
-  // Create transporter
   const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT,
-    auth: {
-      user: process.env.EMAIL_USERNAME,
-      pass: process.env.EMAIL_PASSWORD,
-    },
+    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: { user: config.EMAIL_USERNAME, pass: config.EMAIL_APP_PASSWORD },
   });
 
-  // Define email options
-  const mailOptions = {
-    from: "Job Listing App <noreply@joblisting.com>",
+  await transporter.sendMail({
+    from: "Job Listing App | No Reply <eliasmd624@gmail.com>",
     to: options.email,
     subject: options.subject,
     text: options.message,
     html: options.html,
-  };
-
-  // Send email
-  await transporter.sendMail(mailOptions);
+  });
 };
 
-module.exports = sendEmail;
+const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+module.exports = { sendEmail, isValidEmail };

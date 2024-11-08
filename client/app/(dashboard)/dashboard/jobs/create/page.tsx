@@ -19,31 +19,21 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { getToken } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
+import axios from "axios";
 import { Briefcase } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
-const formSchema = z.object({
-  companyName: z.string().min(2, {
-    message: "Company name must be at least 2 characters.",
-  }),
-  jobTitle: z.string().min(5, {
-    message: "Job title must be at least 5 characters.",
-  }),
+const jobSchema = z.object({
+  companyName: z.string().min(2),
+  title: z.string().min(5),
   jobType: z.enum(["full-time", "part-time", "contract", "internship"]),
-  description: z.string().min(50, {
-    message: "Job description must be at least 50 characters.",
-  }),
-  endDate: z.string().refine(
-    (date) => {
-      const selectedDate = new Date(date);
-      return !isNaN(selectedDate.getTime()) && selectedDate >= new Date();
-    },
-    { message: "End date must be a valid date and cannot be in the past." }
-  ),
+  description: z.string().min(50),
+  endDate: z.string(),
 });
 
 export default function CreateJobPage() {
@@ -51,42 +41,54 @@ export default function CreateJobPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<z.infer<typeof jobSchema>>({
+    resolver: zodResolver(jobSchema),
     defaultValues: {
       companyName: "",
-      jobTitle: "",
+      title: "",
       jobType: "full-time",
       description: "",
       endDate: new Date().toISOString().split("T")[0],
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof jobSchema>) {
     setIsSubmitting(true);
     try {
-      // Here you would typically send the form data to your backend API
-      // For demonstration, we'll just log it and show a success message
-      console.log(values);
+      const token = getToken();
+      const { data } = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/jobs`,
+        values,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-      toast({
-        title: "Job Created",
-        description: "Your job listing has been successfully created.",
-      });
+      if (data.success) {
+        toast({
+          title: "Success",
+          description: "Your job listing has been successfully created.",
+        });
+      }
 
-      // Redirect to the jobs listing page (adjust the route as needed)
-      router.push("/jobs");
+      router.push("/");
+      router.refresh();
     } catch (error) {
+      console.error("Error creating job:", error);
       toast({
         title: "Error",
-        description: "There was a problem creating your job listing.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "There was a problem creating your job listing.",
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
   }
-
   return (
     <div className="container mx-auto rounded-md sm:shadow-xl p-4 sm:p-8 max-w-[500px] my-3">
       <div className="flex items-center gap-3 mb-8">
@@ -110,7 +112,7 @@ export default function CreateJobPage() {
           />
           <FormField
             control={form.control}
-            name="jobTitle"
+            name="title"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Job Title</FormLabel>

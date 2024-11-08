@@ -7,24 +7,53 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getToken } from "@/lib/utils";
+import { jwtDecode } from "jwt-decode";
 import { LogIn, Menu, User, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-const navLinks = [
+interface JwtPayload {
+  companyName: string | null;
+}
+interface NavLink {
+  href: string;
+  label: string;
+}
+
+const navLinks: NavLink[] = [
   { href: "/", label: "Find Jobs" },
   { href: "/dashboard/jobs/create", label: "Create a Job" },
   { href: "/dashboard/jobs/alerts", label: "Job Alerts" },
 ];
 
-export default function JobBoardNav({
-  user,
-}: {
-  user?: { name: string; avatar: string };
-}) {
+export default function JobBoardNav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<string | null>(null);
 
+  useEffect(() => {
+    const token = getToken();
+    if (token) {
+      try {
+        const decoded = jwtDecode<JwtPayload>(token);
+        setUser(decoded.companyName);
+      } catch (error) {
+        console.error("Failed to decode token:", error);
+        setUser(null);
+      }
+    } else {
+      setUser(null);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    document.cookie = "token=; path=/; secure; samesite=strict";
+    setUser(null);
+    window.location.href = "/auth/login";
+  };
+
+  const isUserLoggedIn = !!user;
   return (
     <nav className="bg-background border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -51,32 +80,32 @@ export default function JobBoardNav({
 
           {/* User Actions */}
           <div className="hidden md:flex items-center space-x-4">
-            {user ? (
+            {isUserLoggedIn ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="relative h-8 w-8 rounded-full"
+                    className="relative border rounded-full bg-gray-200 text-gray-800 font-semibold text-lg h-8 w-8"
                   >
-                    <Image
-                      width={200}
-                      height={200}
-                      src={user.avatar}
-                      alt={user.name}
-                      className="h-8 w-8 rounded-full"
-                    />
+                    {user.charAt(0)}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem>Profile</DropdownMenuItem>
                   <DropdownMenuItem>Dashboard</DropdownMenuItem>
-                  <DropdownMenuItem>Log out</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>
+                    Log out
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
               <>
-                <Button variant="ghost">Log in</Button>
-                <Button>Sign up</Button>
+                <Link href="/auth/login">
+                  <Button variant="ghost">Log in</Button>
+                </Link>
+                <Link href="/auth/register">
+                  <Button>Sign up</Button>
+                </Link>
               </>
             )}
           </div>

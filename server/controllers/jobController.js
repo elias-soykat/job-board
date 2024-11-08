@@ -3,14 +3,27 @@ const { AppError } = require("../utils/errorHandler");
 const catchAsync = require("../utils/catchAsync");
 
 exports.getAllJobs = catchAsync(async (req, res) => {
-  const jobs = await Job.find();
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 10;
+  const skip = (page - 1) * limit;
+
+  const totalJobs = await Job.countDocuments();
+  const totalPages = Math.ceil(totalJobs / limit);
+  const jobs = await Job.find().skip(skip).limit(limit);
+  const pagination = {
+    totalDocs: totalJobs,
+    totalPages,
+    currentPage: page,
+    itemsPerPage: limit,
+    hasNextPage: page < totalPages,
+    hasPrevPage: page > 1,
+  };
 
   res.status(200).json({
     status: "success",
     results: jobs.length,
-    data: {
-      jobs,
-    },
+    pagination,
+    data: { jobs },
   });
 });
 
@@ -30,9 +43,6 @@ exports.getJob = catchAsync(async (req, res, next) => {
 });
 
 exports.createJob = catchAsync(async (req, res) => {
-
-  
-
   const newJob = await Job.create(req.body);
 
   res.status(201).json({
