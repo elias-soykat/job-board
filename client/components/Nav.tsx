@@ -153,10 +153,12 @@ export default function JobBoardNav() {
               </div>
             ) : (
               <div className="mt-3 px-2 space-y-1">
+              <Link href="/auth/login">
                 <Button className="w-full justify-start" variant="ghost">
                   <LogIn className="mr-2 h-4 w-4" />
                   Log in
                 </Button>
+              </Link>
                 <Button className="w-full justify-start">
                   <User className="mr-2 h-4 w-4" />
                   Sign up
