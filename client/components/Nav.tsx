@@ -10,7 +10,6 @@ import {
 import { getToken } from "@/lib/utils";
 import { jwtDecode } from "jwt-decode";
 import { LogIn, Menu, User, X } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -143,20 +142,12 @@ export default function JobBoardNav() {
             ))}
           </div>
           <div className="mb-2 pb-4">
-            {user ? (
+            {isUserLoggedIn ? (
               <div className="flex items-center px-5">
-                <div className="flex-shrink-0">
-                  <Image
-                    width={40}
-                    height={40}
-                    className="h-10 w-10 rounded-full"
-                    src={user.avatar}
-                    alt={user.name}
-                  />
-                </div>
+                <div className="flex-shrink-0"></div>
                 <div className="ml-3">
                   <div className="text-base font-medium text-foreground">
-                    {user.name}
+                    {user.charAt(0)}
                   </div>
                 </div>
               </div>
