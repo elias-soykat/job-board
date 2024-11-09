@@ -9,8 +9,16 @@ const { PORT, FRONTEND_URL } = require("./config/env");
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: FRONTEND_URL }));
+const corsOptions = {
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  credentials: true,
+  optionsSuccessStatus: 204,
+};
 
+// Apply CORS middleware
+app.use(cors(corsOptions));
 app.use("/api/v1/jobs", jobRoutes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/alerts", alertRoutes);
